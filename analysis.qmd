@@ -9,8 +9,14 @@ execute:
 #| message: false
 library(tidyverse)
 library(primer.data)
+library(tidymodels)
 ```
 
+our regression model
+$$
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
+$$
 
 
-Men and women may prefer different candidates, which can shape how campaigns are designed. Using data from the 1992 National Election Studies survey, we examine how voter preference varied by gender in that presidential election.
+
+Men and women may prefer different candidates, which can shape how campaigns are designed. Using data from the 1992 National Election Studies survey, we examine how voter preference varied by gender in that presidential election.A potential weakness in our model is that it assumes gender is the only driver of voting preference, potentially overlooking other influential factors such as age, race, or political ideology.
