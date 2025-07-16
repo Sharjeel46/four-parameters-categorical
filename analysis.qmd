@@ -10,3 +10,7 @@ execute:
 library(tidyverse)
 library(primer.data)
 ```
+
+
+
+Men and women may prefer different candidates, which can shape how campaigns are designed. Using data from the 1992 National Election Studies survey, we examine how voter preference varied by gender in that presidential election.
