@@ -1,0 +1,14 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Four Parameters Categorical"
+  navbar:
+    left:
+      - href: analysis.qmd
+        text: Analysis
+
+
+
+
