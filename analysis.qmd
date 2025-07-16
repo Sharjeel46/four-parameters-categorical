@@ -1,9 +1,9 @@
 ---
 title: "Four Parameters Categorical"
 format: html
-execute: 
-  echo: false
+
 ---
+
 
 ```{r}
 #| message: false
@@ -11,6 +11,7 @@ library(tidyverse)
 library(primer.data)
 library(tidymodels)
 library(nnet)
+library(marginaleffects)
 ```
 
 ```{r}
@@ -63,7 +64,68 @@ fit_nes_table <- tidy(fit_nes, conf.int = TRUE) |>
 # Print table
 fit_nes_table
 
+
 ```
+
+```{r}
+plot_data <- pred_probs |>
+  pivot_longer(
+    cols = c(.pred_Clinton, .pred_Bush, .pred_Perot),
+    names_to = "Candidate",
+    values_to = "Probability"
+  ) |>
+  mutate(Candidate = str_remove(Candidate, ".pred_")) |>
+  group_by(sex, Candidate) |>
+  summarize(mean_prob = mean(Probability), .groups = "drop")
+
+```
+
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+
+# Get predicted class probabilities from the multinomial model
+pred_probs <- predict(fit_nes, new_data = nes_92, type = "prob") |>
+  bind_cols(nes_92 |> select(sex))
+
+# Convert to long format for plotting
+plot_data <- pred_probs |>
+  pivot_longer(cols = c(Clinton, Bush, Perot),
+               names_to = "Candidate",
+               values_to = "Probability") |>
+  group_by(sex, Candidate) |>
+  summarize(mean_prob = mean(Probability), .groups = "drop")
+
+# Create a beautiful bar plot
+ggplot(plot_data, aes(x = sex, y = mean_prob, fill = sex)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  facet_wrap(~Candidate) +
+  labs(
+    title = "Predicted Voting Probabilities by Gender (1992 Election)",
+    subtitle = "Model suggests men leaned toward Perot, women toward Clinton",
+    x = "Gender",
+    y = "Predicted Probability",
+    caption = "Source: 1992 National Election Studies (NES)"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(values = c("Male" = "#1F77B4", "Female" = "#FF7F0E")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 13),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+
+
+
+
 our regression model
 $$
 Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
