@@ -65,26 +65,12 @@ fit_nes_table <- tidy(fit_nes, conf.int = TRUE) |>
 fit_nes_table
 
 
-```
-
-```{r}
-plot_data <- pred_probs |>
-  pivot_longer(
-    cols = c(.pred_Clinton, .pred_Bush, .pred_Perot),
-    names_to = "Candidate",
-    values_to = "Probability"
-  ) |>
-  mutate(Candidate = str_remove(Candidate, ".pred_")) |>
-  group_by(sex, Candidate) |>
-  summarize(mean_prob = mean(Probability), .groups = "drop")
-
-```
-
 
 
 ```{r}
 library(tidyverse)
 library(tidymodels)
+library(stringr)
 
 # Get predicted class probabilities from the multinomial model
 pred_probs <- predict(fit_nes, new_data = nes_92, type = "prob") |>
@@ -92,13 +78,16 @@ pred_probs <- predict(fit_nes, new_data = nes_92, type = "prob") |>
 
 # Convert to long format for plotting
 plot_data <- pred_probs |>
-  pivot_longer(cols = c(Clinton, Bush, Perot),
-               names_to = "Candidate",
-               values_to = "Probability") |>
+  pivot_longer(
+    cols = c(.pred_Clinton, .pred_Bush, .pred_Perot),
+    names_to = "Candidate",
+    values_to = "Probability"
+  ) |>
+  mutate(Candidate = str_remove(Candidate, "\\.pred_")) |>
   group_by(sex, Candidate) |>
   summarize(mean_prob = mean(Probability), .groups = "drop")
 
-# Create a beautiful bar plot
+# Create the plot
 ggplot(plot_data, aes(x = sex, y = mean_prob, fill = sex)) +
   geom_col(width = 0.7, show.legend = FALSE) +
   facet_wrap(~Candidate) +

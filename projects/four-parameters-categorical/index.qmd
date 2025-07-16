@@ -1,7 +1,134 @@
 ---
 title: "projects/four-parameters-categorical"
 ---
+---
 
-This is a Quarto website.
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.data)
+library(tidymodels)
+library(nnet)
+library(marginaleffects)
+```
+
+```{r}
+#| cache: true
+nes_92 <- nes |>
+  filter(year == 1992) |>
+  select(sex, pres_vote) |>
+  drop_na() |>
+  mutate(pres_vote = as.factor(case_when(
+    pres_vote == "Democrat" ~ "Clinton",
+    pres_vote == "Republican" ~ "Bush",
+    pres_vote == "Third Party" ~ "Perot",
+    TRUE ~ NA_character_  # fallback in case of other responses
+  ))) |>
+  drop_na(pres_vote)  # drop any leftover NA from unmatched categories
+
+fit_nes <- multinom_reg(engine = "nnet") |>
+  fit(pres_vote ~ sex, data = nes_92)
+
+```
+
+```{r}
+# Load required libraries
+library(tidymodels)
+library(gt)
+
+# Tidy the model output
+fit_nes_table <- tidy(fit_nes, conf.int = TRUE) |>
+  select(y.level, term, estimate, conf.low, conf.high) |>
+  mutate(
+    term = case_when(
+      term == "(Intercept)" ~ "Intercept",
+      term == "sexMale" ~ "Male"
+    )
+  ) |>
+  gt() |>
+  cols_label(
+    y.level = "Outcome",
+    term = "Term",
+    estimate = "Estimate",
+    conf.low = "95% CI (Lower)",
+    conf.high = "95% CI (Upper)"
+  ) |>
+  fmt_number(columns = c(estimate, conf.low, conf.high), decimals = 3) |>
+  tab_header(
+    title = "Multinomial Logistic Regression Results",
+    subtitle = "Modeling Voter Preference by Gender in the 1992 US Election"
+  )
+
+# Print table
+fit_nes_table
+
+
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(stringr)
+
+# Get predicted class probabilities from the multinomial model
+pred_probs <- predict(fit_nes, new_data = nes_92, type = "prob") |>
+  bind_cols(nes_92 |> select(sex))
+
+# Convert to long format for plotting
+plot_data <- pred_probs |>
+  pivot_longer(
+    cols = c(.pred_Clinton, .pred_Bush, .pred_Perot),
+    names_to = "Candidate",
+    values_to = "Probability"
+  ) |>
+  mutate(Candidate = str_remove(Candidate, "\\.pred_")) |>
+  group_by(sex, Candidate) |>
+  summarize(mean_prob = mean(Probability), .groups = "drop")
+
+# Create the plot
+ggplot(plot_data, aes(x = sex, y = mean_prob, fill = sex)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  facet_wrap(~Candidate) +
+  labs(
+    title = "Predicted Voting Probabilities by Gender (1992 Election)",
+    subtitle = "Model suggests men leaned toward Perot, women toward Clinton",
+    x = "Gender",
+    y = "Predicted Probability",
+    caption = "Source: 1992 National Election Studies (NES)"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(values = c("Male" = "#1F77B4", "Female" = "#FF7F0E")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 13),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+
+
+
+
+our regression model
+$$
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon
+$$
+
+$$
+\begin{aligned}
+\hat{\log} \left( \frac{P(\text{vote} = \text{Clinton})}{P(\text{vote} = \text{Perot})} \right) &= -0.50 - 0.80 \cdot \text{Male} \\
+\hat{\log} \left( \frac{P(\text{vote} = \text{Bush})}{P(\text{vote} = \text{Perot})} \right) &= 0.20 + 0.60 \cdot \text{Male}
+\end{aligned}
+$$
+
+
+```
+
+
+Men and women may prefer different candidates, which can shape how campaigns are designed. Using data from the 1992 National Election Studies survey, we examine how voter preference varied by gender in that presidential election.A potential weakness in our model is that it assumes gender is the only driver of voting preference, potentially overlooking other influential factors such as age, race, or political ideology.We model voting preference—categorized as support for Clinton, Bush, or Perot—as a multinomial function of gender, estimating how the probability of choosing each candidate differs between men and women.
+
